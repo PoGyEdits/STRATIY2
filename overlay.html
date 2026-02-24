@@ -1,0 +1,419 @@
+﻿<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kick Sub Goal Frame</title>
+  <style>
+    :root {
+      --frame-size: 420;
+      --stroke-width: 16;
+      --radius: 16;
+      --track: rgba(255, 255, 255, 0.22);
+      --accent-a: #4ade80;
+      --accent-b: #22d3ee;
+      --text: #f8fafc;
+      --text-shadow: rgba(0, 0, 0, 0.8);
+      --font: "Segoe UI", Tahoma, sans-serif;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      font-family: var(--font);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .frame-shell {
+      position: relative;
+      width: calc(var(--frame-size) * 1px);
+      height: calc(var(--frame-size) * 1px);
+      filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.5));
+    }
+
+    .frame-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .status {
+      position: absolute;
+      left: 50%;
+      bottom: calc(-72px - var(--stroke-width) * 0.3px);
+      transform: translateX(-50%);
+      min-width: 220px;
+      text-align: center;
+      color: var(--text);
+      text-shadow: 0 2px 8px var(--text-shadow);
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(3px);
+    }
+
+    .status .title {
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    .status .count {
+      margin-top: 3px;
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .status .sub {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .status.error {
+      background: rgba(120, 20, 20, 0.55);
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="frame-shell">
+      <svg id="frameSvg" class="frame-svg" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--accent-a)" />
+            <stop offset="100%" stop-color="var(--accent-b)" />
+          </linearGradient>
+        </defs>
+        <rect id="trackRect" x="8" y="8" width="84" height="84" rx="7" ry="7" fill="none" stroke="var(--track)" stroke-width="4" />
+        <rect id="progressRect" x="8" y="8" width="84" height="84" rx="7" ry="7" fill="none" stroke="url(#progressGradient)" stroke-width="4" stroke-linecap="round" transform="rotate(-90 50 50)" />
+      </svg>
+
+      <div id="status" class="status">
+        <div id="title" class="title">Kick Sub Goal</div>
+        <div id="count" class="count">0 / 25</div>
+        <div id="sub" class="sub">Zbývá 25 subů</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+
+    const cfg = {
+      channel: (params.get("channel") || "Straty").trim(),
+      goal: Math.max(1, Number(params.get("goal") || 25)),
+      title: params.get("title") || "Kick Sub Goal",
+      refreshMs: Math.max(5000, Number(params.get("refreshMs") || 30000)),
+      frameSize: Math.max(180, Number(params.get("size") || 420)),
+      stroke: Math.max(4, Number(params.get("stroke") || 16)),
+      radius: Math.max(0, Number(params.get("radius") || 16)),
+      manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
+      useProxy: params.get("proxy") !== "0"
+    };
+
+    document.documentElement.style.setProperty("--frame-size", cfg.frameSize);
+    document.documentElement.style.setProperty("--stroke-width", cfg.stroke);
+    document.documentElement.style.setProperty("--radius", cfg.radius);
+
+    const titleEl = document.getElementById("title");
+    const countEl = document.getElementById("count");
+    const subEl = document.getElementById("sub");
+    const statusEl = document.getElementById("status");
+    const trackRect = document.getElementById("trackRect");
+    const progressRect = document.getElementById("progressRect");
+
+    titleEl.textContent = cfg.title;
+
+    const viewSize = 100;
+    const inset = Math.max(0.5, (cfg.stroke / cfg.frameSize) * viewSize * 0.5);
+    const rectSize = viewSize - inset * 2;
+    const corner = Math.min((cfg.radius / cfg.frameSize) * viewSize, rectSize / 2);
+
+    for (const el of [trackRect, progressRect]) {
+      el.setAttribute("x", inset.toString());
+      el.setAttribute("y", inset.toString());
+      el.setAttribute("width", rectSize.toString());
+      el.setAttribute("height", rectSize.toString());
+      el.setAttribute("rx", corner.toString());
+      el.setAttribute("ry", corner.toString());
+      el.setAttribute("stroke-width", ((cfg.stroke / cfg.frameSize) * viewSize).toString());
+    }
+
+    const perimeter = 2 * (rectSize + rectSize) - 8 * corner + 2 * Math.PI * corner;
+    progressRect.style.strokeDasharray = `${perimeter}`;
+
+    let lastRatio = 0;
+    let liveGoal = cfg.goal;
+
+    function drawProgress(current, goalOverride = null, remainingOverride = null) {
+      if (Number.isFinite(goalOverride) && goalOverride > 0) {
+        liveGoal = Math.max(1, Math.floor(goalOverride));
+      }
+      const clampedCurrent = Math.max(0, Number.isFinite(current) ? current : 0);
+      const ratio = Math.min(1, clampedCurrent / liveGoal);
+      const offset = perimeter * (1 - ratio);
+
+      progressRect.style.transition = "stroke-dashoffset 800ms ease";
+      progressRect.style.strokeDashoffset = `${offset}`;
+      if (ratio < lastRatio) {
+        progressRect.style.transition = "stroke-dashoffset 350ms ease-out";
+      }
+      lastRatio = ratio;
+
+      const missing = Number.isFinite(remainingOverride) ? Math.max(0, Math.floor(remainingOverride)) : Math.max(0, liveGoal - clampedCurrent);
+      countEl.textContent = `${clampedCurrent} / ${liveGoal}`;
+      subEl.textContent = missing === 0 ? "Goal splněn" : `Zbývá ${missing} subů`;
+      statusEl.classList.remove("error");
+    }
+
+    function toNumber(v) {
+      if (typeof v === "number" && Number.isFinite(v)) return v;
+      if (typeof v === "string" && v.trim() && Number.isFinite(Number(v))) return Number(v);
+      return null;
+    }
+
+    function goalFromObject(payload) {
+      const currentKeys = [
+        "current",
+        "current_subs",
+        "current_subscriptions",
+        "subscription_count",
+        "subscriptions_count",
+        "subscribers_count",
+        "subscriber_count",
+        "active_subscribers",
+        "subs_count"
+      ];
+      const goalKeys = ["goal", "target", "max", "subscription_goal", "subscriptions_goal", "subscriber_goal"];
+      const remainingKeys = ["remaining", "remaining_subs", "subs_to_go", "subscriptions_to_go", "to_go"];
+
+      const queue = [payload];
+      let fallbackCurrent = null;
+      while (queue.length) {
+        const node = queue.shift();
+        if (!node || typeof node !== "object") continue;
+
+        let current = null;
+        let goal = null;
+        let remaining = null;
+
+        for (const k of currentKeys) {
+          if (k in node) {
+            const v = toNumber(node[k]);
+            if (v !== null) {
+              current = v;
+              break;
+            }
+          }
+        }
+        for (const k of goalKeys) {
+          if (k in node) {
+            const v = toNumber(node[k]);
+            if (v !== null) {
+              goal = v;
+              break;
+            }
+          }
+        }
+        for (const k of remainingKeys) {
+          if (k in node) {
+            const v = toNumber(node[k]);
+            if (v !== null) {
+              remaining = v;
+              break;
+            }
+          }
+        }
+
+        if (goal !== null && current !== null) return { current, goal, remaining };
+        if (goal !== null && remaining !== null) return { current: Math.max(0, goal - remaining), goal, remaining };
+        if (current !== null && remaining !== null) return { current, goal: Math.max(1, current + remaining), remaining };
+        if (fallbackCurrent === null && current !== null) fallbackCurrent = current;
+
+        for (const val of Object.values(node)) {
+          if (val && typeof val === "object") queue.push(val);
+        }
+      }
+
+      return fallbackCurrent !== null ? { current: fallbackCurrent, goal: null, remaining: null } : null;
+    }
+
+    function goalFromText(text) {
+      if (!text) return null;
+
+      const plain = text.replace(/\s+/g, " ");
+      const lower = plain.toLowerCase();
+      const hasSubWord = (chunk) => /(?:sub|subscription|subscriptions|gift sub)/i.test(chunk);
+
+      const remainingMatch = plain.match(/(\d{1,6})\s+subscriptions?\s+to\s+go/i) || plain.match(/(?:subs?|subscriptions?)\D{0,16}(\d{1,6})\D{0,8}(?:to\s*go|remaining)/i);
+      const remaining = remainingMatch && Number.isFinite(Number(remainingMatch[1])) ? Number(remainingMatch[1]) : null;
+
+      let bestPair = null;
+      const pairRegex = /(\d{1,6})\s*\/\s*(\d{1,6})/g;
+      let pair;
+      while ((pair = pairRegex.exec(plain)) !== null) {
+        const current = Number(pair[1]);
+        const goal = Number(pair[2]);
+        if (!Number.isFinite(current) || !Number.isFinite(goal) || goal <= 0 || current > goal) continue;
+
+        const start = Math.max(0, pair.index - 90);
+        const end = Math.min(plain.length, pair.index + pair[0].length + 90);
+        const around = plain.slice(start, end);
+
+        const contextual = hasSubWord(around) || (pair[0] && lower.includes("sub goal"));
+        const reasonableGoal = goal >= 10 || goal === cfg.goal;
+        if (!contextual || !reasonableGoal) continue;
+
+        if (!bestPair || goal > bestPair.goal) {
+          bestPair = { current, goal };
+        }
+      }
+
+      if (bestPair) {
+        return { current: bestPair.current, goal: bestPair.goal, remaining: Math.max(0, bestPair.goal - bestPair.current) };
+      }
+
+      if (remaining !== null && Number.isFinite(cfg.goal) && cfg.goal > 0 && remaining <= cfg.goal) {
+        return { current: Math.max(0, cfg.goal - remaining), goal: cfg.goal, remaining };
+      }
+
+      const normalized = text.replace(/[, ]+/g, "");
+      const toGo = normalized.match(/(\d{1,6})(?:subscriptions|subs)?to(go)?/i);
+      if (toGo && Number.isFinite(Number(toGo[1])) && hasSubWord(plain)) {
+        const rem = Number(toGo[1]);
+        if (cfg.goal > 0 && rem <= cfg.goal) {
+          return { current: Math.max(0, cfg.goal - rem), goal: cfg.goal, remaining: rem };
+        }
+        return { current: null, goal: null, remaining: rem };
+      }
+      return null;
+    }
+
+    async function fetchText(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    }
+
+    function parseAny(text) {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
+    }
+
+    async function loadSubs() {
+      if (cfg.manualSubs !== null && Number.isFinite(cfg.manualSubs)) {
+        drawProgress(cfg.manualSubs);
+        return;
+      }
+
+      const slug = encodeURIComponent(cfg.channel);
+      const directEndpoints = [
+        `https://kick.com/api/v2/channels/${slug}`,
+        `https://api.kick.com/private/v1/channels/${slug}`,
+        `https://api.kick.com/public/v1/channels/${slug}`
+      ];
+      const proxyEndpoints = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${cfg.channel}`)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/${cfg.channel}`)}`,
+        `https://r.jina.ai/http://kick.com/${cfg.channel}`
+      ];
+      const endpoints = cfg.useProxy ? [...directEndpoints, ...proxyEndpoints] : directEndpoints;
+
+      let lastError = null;
+
+      for (const url of endpoints) {
+        try {
+          const text = await fetchText(url);
+          const data = parseAny(text);
+
+          const fromObject = data ? goalFromObject(data) : null;
+          if (fromObject && Number.isFinite(fromObject.current)) {
+            drawProgress(fromObject.current, fromObject.goal, fromObject.remaining);
+            return;
+          }
+
+          const fromText = goalFromText(text);
+          if (fromText) {
+            if (Number.isFinite(fromText.current)) {
+              drawProgress(fromText.current, fromText.goal, fromText.remaining);
+              return;
+            }
+            if (Number.isFinite(fromText.remaining)) {
+              drawProgress(Math.max(0, liveGoal - fromText.remaining), liveGoal, fromText.remaining);
+              return;
+            }
+          }
+
+          if (data && typeof data === "object" && data !== null) {
+            const deepText = JSON.stringify(data);
+            const fromDeepText = goalFromText(deepText);
+            if (fromDeepText && Number.isFinite(fromDeepText.current)) {
+              drawProgress(fromDeepText.current, fromDeepText.goal, fromDeepText.remaining);
+              return;
+            }
+          }
+
+          if (data && data.channel && typeof data.channel === "object") {
+            const fromChannel = goalFromObject(data.channel);
+            if (fromChannel && Number.isFinite(fromChannel.current)) {
+              drawProgress(fromChannel.current, fromChannel.goal, fromChannel.remaining);
+              return;
+            }
+          }
+
+          lastError = new Error("Kick odpověď bez čitelného sub goalu");
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!cfg.useProxy) {
+        try {
+          const fallbackPages = [
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/${cfg.channel}`)}`,
+            `https://r.jina.ai/http://kick.com/${cfg.channel}`
+          ];
+          for (const pUrl of fallbackPages) {
+            const html = await fetchText(pUrl);
+            const parsed = goalFromText(html);
+            if (parsed && Number.isFinite(parsed.current)) {
+              drawProgress(parsed.current, parsed.goal, parsed.remaining);
+              return;
+            }
+          }
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      statusEl.classList.add("error");
+      subEl.textContent = "Nelze načíst sub goal z Kick";
+      if (lastError) {
+        console.warn("Kick load failed:", lastError);
+      }
+    }
+
+    drawProgress(0);
+    loadSubs();
+    setInterval(loadSubs, cfg.refreshMs);
+  </script>
+</body>
+</html>
