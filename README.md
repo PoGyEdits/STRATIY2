@@ -1,32 +1,34 @@
 ﻿# Kick Sub Goal Overlay (OBS)
 
-`overlay.html` je web overlay pro OBS a `api/subgoal.js` je backend endpoint pro automaticke nacitani sub goalu.
+`overlay.html` je web overlay pro OBS.
+Rezim bez pristupu k uctu: nastav startovni `subs` a overlay pak automaticky pricita nove suby z verejnych Kick chat eventu.
 
-## Nasazeni (automaticke)
+## Doporuceny URL (Straty)
 
-1. Importni tento repo do Vercel.
-2. Deploy bez dalsi konfigurace (`vercel.json` uz je pripraveny).
-3. V OBS pouzij URL:
-`https://TVUJ-VERCEL-DOMAIN/overlay.html?channel=Straty&goal=200`
+`https://TVUJ-VERCEL-DOMAIN/overlay.html?channel=Straty&goal=200&subs=177`
 
-Overlay vola backend `https://TVUJ-VERCEL-DOMAIN/api/subgoal` automaticky.
+- `subs=177` je start na zacatku streamu
+- behem streamu se pocitadlo samo zvysuje podle live sub/gift sub eventu
 
-## URL parametry overlaye
+## URL parametry
 
 - `channel` - kick kanal (default `Straty`)
 - `goal` - cilovy pocet subu (default `25`)
-- `title` - nadpis v overlay (default `Kick Sub Goal`)
-- `size` - velikost ctverce v px (default `420`)
-- `stroke` - tloustka ramecku (default `16`)
-- `radius` - zaobleni rohu (default `16`)
-- `refreshMs` - interval obnovy dat (default `30000`)
-- `api` - vlastni URL backend endpointu (default `/api/subgoal`)
-- `subs` - rucni override aktualniho poctu (nouzove)
-- `remaining` - rucni override zbyvajicich subu (nouzove)
+- `subs` - startovni aktualni pocet subu (doporučeno)
+- `remaining` - alternativa ke `subs` (kolik zbyva)
+- `live=0` - vypne live websocket pricitani
+- `chatroomId` - rucni chatroom ID (volitelne)
+- `chatApi` - endpoint pro zjisteni chatroom ID (default `/api/chatroom`)
+- `api` - endpoint pro auto nacteni full stavu (default `/api/subgoal`, volitelne)
+- `title`, `size`, `stroke`, `radius`, `refreshMs` - vzhled
 
-## OBS nastaveni
+## OBS
 
 1. Pridej `Browser Source`.
-2. Vloz URL s parametry.
-3. Width/Height nastav napriklad `500x620`.
+2. Vloz URL.
+3. Nastav Width/Height napr. `500x620`.
 4. Zapni `Refresh browser when scene becomes active`.
+
+## Poznamka
+
+Kick muze blokovat prime API cteni. Proto je nejstabilnejsi pouzit `subs` jako start a nechat live websocket pricitani behem streamu.

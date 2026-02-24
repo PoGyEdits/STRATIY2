@@ -124,7 +124,10 @@
       radius: Math.max(0, Number(params.get("radius") || 16)),
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
-      apiBase: (params.get("api") || "/api/subgoal").trim()
+      apiBase: (params.get("api") || "/api/subgoal").trim(),
+      chatroomApi: (params.get("chatApi") || "/api/chatroom").trim(),
+      chatroomId: params.has("chatroomId") ? Math.max(1, Number(params.get("chatroomId"))) : null,
+      live: params.get("live") !== "0"
     };
 
     document.documentElement.style.setProperty("--frame-size", cfg.frameSize);
@@ -160,6 +163,8 @@
 
     let lastRatio = 0;
     let liveGoal = cfg.goal;
+    let liveCurrent = 0;
+    let ws = null;
 
     function drawProgress(current, goalOverride = null, remainingOverride = null) {
       if (Number.isFinite(goalOverride) && goalOverride > 0) {
@@ -180,6 +185,7 @@
       countEl.textContent = `${clampedCurrent} / ${liveGoal}`;
       subEl.textContent = missing === 0 ? "Goal splněn" : `Zbývá ${missing} subů`;
       statusEl.classList.remove("error");
+      liveCurrent = clampedCurrent;
     }
 
     function buildApiUrl() {
@@ -213,8 +219,97 @@
       }
     }
 
+    function parseWsEvent(raw) {
+      try {
+        const msg = JSON.parse(raw);
+        if (!msg || typeof msg !== "object") return null;
+        return msg;
+      } catch {
+        return null;
+      }
+    }
+
+    function parseEventData(dataField) {
+      if (!dataField) return null;
+      if (typeof dataField === "object") return dataField;
+      if (typeof dataField !== "string") return null;
+      try {
+        return JSON.parse(dataField);
+      } catch {
+        return null;
+      }
+    }
+
+    async function getChatroomId() {
+      if (Number.isFinite(cfg.chatroomId) && cfg.chatroomId > 0) return cfg.chatroomId;
+      const chatApiUrl = new URL(cfg.chatroomApi, window.location.href);
+      chatApiUrl.searchParams.set("channel", cfg.channel);
+      const res = await fetch(chatApiUrl.toString(), { cache: "no-store" });
+      if (!res.ok) throw new Error(`chatroom HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data || !Number.isFinite(Number(data.chatroomId))) throw new Error("Missing chatroomId");
+      return Number(data.chatroomId);
+    }
+
+    function connectLive(chatroomId) {
+      if (!cfg.live || !Number.isFinite(chatroomId) || chatroomId <= 0) return;
+      const url = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=7.6.0&flash=false";
+      ws = new WebSocket(url);
+
+      ws.addEventListener("open", () => {
+        const payload = {
+          event: "pusher:subscribe",
+          data: {
+            auth: "",
+            channel: `chatrooms.${chatroomId}.v2`
+          }
+        };
+        ws.send(JSON.stringify(payload));
+      });
+
+      ws.addEventListener("message", (evt) => {
+        const msg = parseWsEvent(evt.data);
+        if (!msg) return;
+
+        if (msg.event === "pusher:ping") {
+          ws.send(JSON.stringify({ event: "pusher:pong", data: {} }));
+          return;
+        }
+
+        if (msg.event === "App\\Events\\SubscriptionEvent") {
+          drawProgress(liveCurrent + 1);
+          return;
+        }
+
+        if (msg.event === "App\\Events\\GiftedSubscriptionsEvent") {
+          const data = parseEventData(msg.data);
+          const giftedUsers = data && Array.isArray(data.gifted_usernames) ? data.gifted_usernames.length : null;
+          const qty = Number.isFinite(giftedUsers) && giftedUsers > 0 ? giftedUsers : 1;
+          drawProgress(liveCurrent + qty);
+        }
+      });
+
+      ws.addEventListener("close", () => {
+        setTimeout(() => {
+          connectLive(chatroomId);
+        }, 3500);
+      });
+
+      ws.addEventListener("error", () => {
+        statusEl.classList.remove("error");
+      });
+    }
+
     drawProgress(0);
-    loadSubs();
+    loadSubs().finally(async () => {
+      if (!cfg.live) return;
+      try {
+        const id = await getChatroomId();
+        connectLive(id);
+      } catch (err) {
+        console.warn("Live chat connect failed:", err);
+      }
+    });
     setInterval(loadSubs, cfg.refreshMs);
   </script>
 </body>
