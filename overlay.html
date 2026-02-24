@@ -11,7 +11,8 @@
       --stroke-width: 16;
       --radius: 0;
       --label-offset: 96;
-      --track: transparent;
+      --frame-pad: 14;
+      --track: rgba(255, 138, 0, 0.35);
       --accent-a: #ff8a00;
       --accent-b: #ffb347;
       --text: #f8fafc;
@@ -40,8 +41,8 @@
 
     .frame-shell {
       position: relative;
-      width: calc(var(--frame-width) * 1px);
-      height: calc(var(--frame-height) * 1px);
+      width: calc((var(--frame-width) + var(--frame-pad) * 2) * 1px);
+      height: calc((var(--frame-height) + var(--frame-pad) * 2) * 1px);
       filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.5));
     }
 
@@ -126,6 +127,7 @@
       frameHeight: Math.max(220, Number(params.get("h") || params.get("w") || params.get("size") || 420)),
       stroke: Math.max(4, Number(params.get("stroke") || 16)),
       radius: 0,
+      pad: Math.max(0, Number(params.get("pad") || 14)),
       labelOffset: Math.max(70, Number(params.get("labelOffset") || 104)),
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
@@ -139,6 +141,7 @@
     document.documentElement.style.setProperty("--frame-height", cfg.frameHeight);
     document.documentElement.style.setProperty("--stroke-width", cfg.stroke);
     document.documentElement.style.setProperty("--radius", cfg.radius);
+    document.documentElement.style.setProperty("--frame-pad", cfg.pad);
     document.documentElement.style.setProperty("--label-offset", cfg.labelOffset);
 
     const titleEl = document.getElementById("title");
@@ -151,14 +154,23 @@
     titleEl.textContent = cfg.title;
 
     const frameSvg = document.getElementById("frameSvg");
-    frameSvg.setAttribute("viewBox", `0 0 ${cfg.frameWidth} ${cfg.frameHeight}`);
-    const inset = cfg.stroke * 0.5;
-    progressRect.setAttribute("transform", `rotate(-90 ${cfg.frameWidth / 2} ${cfg.frameHeight / 2})`);
+    const outerW = cfg.frameWidth + cfg.pad * 2;
+    const outerH = cfg.frameHeight + cfg.pad * 2;
+    frameSvg.setAttribute("viewBox", `0 0 ${outerW} ${outerH}`);
+    const inset = cfg.pad + cfg.stroke * 0.5;
+    progressRect.setAttribute("transform", `rotate(-90 ${outerW / 2} ${outerH / 2})`);
     const rectW = Math.max(1, cfg.frameWidth - cfg.stroke);
     const rectH = Math.max(1, cfg.frameHeight - cfg.stroke);
     const corner = 0;
 
-    trackRect.style.display = "none";
+    trackRect.style.display = "block";
+    trackRect.setAttribute("x", inset.toString());
+    trackRect.setAttribute("y", inset.toString());
+    trackRect.setAttribute("width", rectW.toString());
+    trackRect.setAttribute("height", rectH.toString());
+    trackRect.setAttribute("rx", corner.toString());
+    trackRect.setAttribute("ry", corner.toString());
+    trackRect.setAttribute("stroke-width", cfg.stroke.toString());
     progressRect.setAttribute("x", inset.toString());
     progressRect.setAttribute("y", inset.toString());
     progressRect.setAttribute("width", rectW.toString());
@@ -168,7 +180,7 @@
     progressRect.setAttribute("stroke-width", cfg.stroke.toString());
 
     const perimeter = 2 * (rectW + rectH) - 8 * corner + 2 * Math.PI * corner;
-    progressRect.style.strokeDasharray = `${perimeter}`;
+    progressRect.style.strokeDasharray = `${perimeter} ${perimeter}`;
 
     let lastRatio = 0;
     let liveGoal = cfg.goal;
