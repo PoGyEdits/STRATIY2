@@ -124,7 +124,7 @@
       radius: Math.max(0, Number(params.get("radius") || 16)),
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
-      useProxy: params.get("proxy") !== "0"
+      apiBase: (params.get("api") || "/api/subgoal").trim()
     };
 
     document.documentElement.style.setProperty("--frame-size", cfg.frameSize);
@@ -182,141 +182,11 @@
       statusEl.classList.remove("error");
     }
 
-    function toNumber(v) {
-      if (typeof v === "number" && Number.isFinite(v)) return v;
-      if (typeof v === "string" && v.trim() && Number.isFinite(Number(v))) return Number(v);
-      return null;
-    }
-
-    function goalFromObject(payload) {
-      const currentKeys = [
-        "current",
-        "current_subs",
-        "current_subscriptions",
-        "subscription_count",
-        "subscriptions_count",
-        "subscribers_count",
-        "subscriber_count",
-        "active_subscribers",
-        "subs_count"
-      ];
-      const goalKeys = ["goal", "target", "max", "subscription_goal", "subscriptions_goal", "subscriber_goal"];
-      const remainingKeys = ["remaining", "remaining_subs", "subs_to_go", "subscriptions_to_go", "to_go"];
-
-      const queue = [payload];
-      let fallbackCurrent = null;
-      while (queue.length) {
-        const node = queue.shift();
-        if (!node || typeof node !== "object") continue;
-
-        let current = null;
-        let goal = null;
-        let remaining = null;
-
-        for (const k of currentKeys) {
-          if (k in node) {
-            const v = toNumber(node[k]);
-            if (v !== null) {
-              current = v;
-              break;
-            }
-          }
-        }
-        for (const k of goalKeys) {
-          if (k in node) {
-            const v = toNumber(node[k]);
-            if (v !== null) {
-              goal = v;
-              break;
-            }
-          }
-        }
-        for (const k of remainingKeys) {
-          if (k in node) {
-            const v = toNumber(node[k]);
-            if (v !== null) {
-              remaining = v;
-              break;
-            }
-          }
-        }
-
-        if (goal !== null && current !== null) return { current, goal, remaining };
-        if (goal !== null && remaining !== null) return { current: Math.max(0, goal - remaining), goal, remaining };
-        if (current !== null && remaining !== null) return { current, goal: Math.max(1, current + remaining), remaining };
-        if (fallbackCurrent === null && current !== null) fallbackCurrent = current;
-
-        for (const val of Object.values(node)) {
-          if (val && typeof val === "object") queue.push(val);
-        }
-      }
-
-      return fallbackCurrent !== null ? { current: fallbackCurrent, goal: null, remaining: null } : null;
-    }
-
-    function goalFromText(text) {
-      if (!text) return null;
-
-      const plain = text.replace(/\s+/g, " ");
-      const lower = plain.toLowerCase();
-      const hasSubWord = (chunk) => /(?:sub|subscription|subscriptions|gift sub)/i.test(chunk);
-
-      const remainingMatch = plain.match(/(\d{1,6})\s+subscriptions?\s+to\s+go/i) || plain.match(/(?:subs?|subscriptions?)\D{0,16}(\d{1,6})\D{0,8}(?:to\s*go|remaining)/i);
-      const remaining = remainingMatch && Number.isFinite(Number(remainingMatch[1])) ? Number(remainingMatch[1]) : null;
-
-      let bestPair = null;
-      const pairRegex = /(\d{1,6})\s*\/\s*(\d{1,6})/g;
-      let pair;
-      while ((pair = pairRegex.exec(plain)) !== null) {
-        const current = Number(pair[1]);
-        const goal = Number(pair[2]);
-        if (!Number.isFinite(current) || !Number.isFinite(goal) || goal <= 0 || current > goal) continue;
-
-        const start = Math.max(0, pair.index - 90);
-        const end = Math.min(plain.length, pair.index + pair[0].length + 90);
-        const around = plain.slice(start, end);
-
-        const contextual = hasSubWord(around) || (pair[0] && lower.includes("sub goal"));
-        const reasonableGoal = goal >= 10 || goal === cfg.goal;
-        if (!contextual || !reasonableGoal) continue;
-
-        if (!bestPair || goal > bestPair.goal) {
-          bestPair = { current, goal };
-        }
-      }
-
-      if (bestPair) {
-        return { current: bestPair.current, goal: bestPair.goal, remaining: Math.max(0, bestPair.goal - bestPair.current) };
-      }
-
-      if (remaining !== null && Number.isFinite(cfg.goal) && cfg.goal > 0 && remaining <= cfg.goal) {
-        return { current: Math.max(0, cfg.goal - remaining), goal: cfg.goal, remaining };
-      }
-
-      const normalized = text.replace(/[, ]+/g, "");
-      const toGo = normalized.match(/(\d{1,6})(?:subscriptions|subs)?to(go)?/i);
-      if (toGo && Number.isFinite(Number(toGo[1])) && hasSubWord(plain)) {
-        const rem = Number(toGo[1]);
-        if (cfg.goal > 0 && rem <= cfg.goal) {
-          return { current: Math.max(0, cfg.goal - rem), goal: cfg.goal, remaining: rem };
-        }
-        return { current: null, goal: null, remaining: rem };
-      }
-      return null;
-    }
-
-    async function fetchText(url) {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.text();
-    }
-
-    function parseAny(text) {
-      try {
-        return JSON.parse(text);
-      } catch {
-        return null;
-      }
+    function buildApiUrl() {
+      const apiUrl = new URL(cfg.apiBase, window.location.href);
+      apiUrl.searchParams.set("channel", cfg.channel);
+      apiUrl.searchParams.set("goal", String(cfg.goal));
+      return apiUrl.toString();
     }
 
     async function loadSubs() {
@@ -329,90 +199,17 @@
         return;
       }
 
-      const slug = encodeURIComponent(cfg.channel);
-      const directEndpoints = [
-        `https://kick.com/api/v2/channels/${slug}`,
-        `https://api.kick.com/private/v1/channels/${slug}`,
-        `https://api.kick.com/public/v1/channels/${slug}`
-      ];
-      const proxyEndpoints = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${cfg.channel}`)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/${cfg.channel}`)}`,
-        `https://r.jina.ai/http://kick.com/${cfg.channel}`
-      ];
-      const endpoints = cfg.useProxy ? [...directEndpoints, ...proxyEndpoints] : directEndpoints;
+      try {
+        const res = await fetch(buildApiUrl(), { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data || !Number.isFinite(data.current)) throw new Error("Invalid API payload");
 
-      let lastError = null;
-
-      for (const url of endpoints) {
-        try {
-          const text = await fetchText(url);
-          const data = parseAny(text);
-
-          const fromObject = data ? goalFromObject(data) : null;
-          if (fromObject && Number.isFinite(fromObject.current)) {
-            drawProgress(fromObject.current, fromObject.goal, fromObject.remaining);
-            return;
-          }
-
-          const fromText = goalFromText(text);
-          if (fromText) {
-            if (Number.isFinite(fromText.current)) {
-              drawProgress(fromText.current, fromText.goal, fromText.remaining);
-              return;
-            }
-            if (Number.isFinite(fromText.remaining)) {
-              drawProgress(Math.max(0, liveGoal - fromText.remaining), liveGoal, fromText.remaining);
-              return;
-            }
-          }
-
-          if (data && typeof data === "object" && data !== null) {
-            const deepText = JSON.stringify(data);
-            const fromDeepText = goalFromText(deepText);
-            if (fromDeepText && Number.isFinite(fromDeepText.current)) {
-              drawProgress(fromDeepText.current, fromDeepText.goal, fromDeepText.remaining);
-              return;
-            }
-          }
-
-          if (data && data.channel && typeof data.channel === "object") {
-            const fromChannel = goalFromObject(data.channel);
-            if (fromChannel && Number.isFinite(fromChannel.current)) {
-              drawProgress(fromChannel.current, fromChannel.goal, fromChannel.remaining);
-              return;
-            }
-          }
-
-          lastError = new Error("Kick odpověď bez čitelného sub goalu");
-        } catch (err) {
-          lastError = err;
-        }
-      }
-
-      if (!cfg.useProxy) {
-        try {
-          const fallbackPages = [
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/${cfg.channel}`)}`,
-            `https://r.jina.ai/http://kick.com/${cfg.channel}`
-          ];
-          for (const pUrl of fallbackPages) {
-            const html = await fetchText(pUrl);
-            const parsed = goalFromText(html);
-            if (parsed && Number.isFinite(parsed.current)) {
-              drawProgress(parsed.current, parsed.goal, parsed.remaining);
-              return;
-            }
-          }
-        } catch (err) {
-          lastError = err;
-        }
-      }
-
-      statusEl.classList.add("error");
-      subEl.textContent = "Kick API blokuje pristup. Pouzij ?subs=177 nebo ?remaining=23";
-      if (lastError) {
-        console.warn("Kick load failed:", lastError);
+        drawProgress(data.current, data.goal, data.remaining);
+      } catch (err) {
+        statusEl.classList.add("error");
+        subEl.textContent = "Auto nacteni selhalo. Docasne pouzij ?subs=177";
+        console.warn("Sub goal API failed:", err);
       }
     }
 
