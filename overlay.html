@@ -51,6 +51,22 @@
       height: 100%;
       overflow: visible;
     }
+    .frame-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .seg {
+      position: absolute;
+      background: var(--track);
+    }
+    .progress .seg {
+      background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+    }
+    .progress .seg.right,
+    .progress .seg.left {
+      background: linear-gradient(180deg, var(--accent-a), var(--accent-b));
+    }
 
     .status {
       position: absolute;
@@ -96,16 +112,18 @@
 <body>
   <div class="overlay">
     <div class="frame-shell">
-      <svg id="frameSvg" class="frame-svg" viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="var(--accent-a)" />
-            <stop offset="100%" stop-color="var(--accent-b)" />
-          </linearGradient>
-        </defs>
-        <path id="trackRect" d="" fill="none" stroke="var(--track)" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" />
-        <path id="progressRect" d="" fill="none" stroke="url(#progressGradient)" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" />
-      </svg>
+      <div class="frame-layer track" id="trackLayer" aria-hidden="true">
+        <div class="seg top"></div>
+        <div class="seg right"></div>
+        <div class="seg bottom"></div>
+        <div class="seg left"></div>
+      </div>
+      <div class="frame-layer progress" id="progressLayer" aria-hidden="true">
+        <div class="seg top"></div>
+        <div class="seg right"></div>
+        <div class="seg bottom"></div>
+        <div class="seg left"></div>
+      </div>
 
       <div id="status" class="status">
         <div id="title" class="title">Kick Sub Goal</div>
@@ -173,8 +191,20 @@
     const countEl = document.getElementById("count");
     const subEl = document.getElementById("sub");
     const statusEl = document.getElementById("status");
-    const trackRect = document.getElementById("trackRect");
-    const progressRect = document.getElementById("progressRect");
+    const trackLayer = document.getElementById("trackLayer");
+    const progressLayer = document.getElementById("progressLayer");
+    const trackSeg = {
+      top: trackLayer.querySelector(".top"),
+      right: trackLayer.querySelector(".right"),
+      bottom: trackLayer.querySelector(".bottom"),
+      left: trackLayer.querySelector(".left")
+    };
+    const progSeg = {
+      top: progressLayer.querySelector(".top"),
+      right: progressLayer.querySelector(".right"),
+      bottom: progressLayer.querySelector(".bottom"),
+      left: progressLayer.querySelector(".left")
+    };
     if (pc) statusEl.style.background = pc;
     if (tc) statusEl.style.color = tc;
     if (bc) statusEl.style.borderColor = bc;
@@ -186,55 +216,74 @@
       statusEl.style.display = "none";
     }
 
-    const frameSvg = document.getElementById("frameSvg");
     const outerW = cfg.frameWidth + cfg.pad * 2;
     const outerH = cfg.frameHeight + cfg.pad * 2;
-    frameSvg.setAttribute("viewBox", `0 0 ${outerW} ${outerH}`);
-    const inset = cfg.pad + cfg.stroke * 0.5;
-    const rectW = Math.max(1, cfg.frameWidth - cfg.stroke);
-    const rectH = Math.max(1, cfg.frameHeight - cfg.stroke);
-    const x1 = inset;
-    const y1 = inset;
-    const x2 = inset + rectW;
-    const y2 = inset + rectH;
-    const framePath = `M ${x1} ${y1} H ${x2} V ${y2} H ${x1} V ${y1}`;
+    const x = cfg.pad;
+    const y = cfg.pad;
+    const w = cfg.frameWidth;
+    const h = cfg.frameHeight;
+    const s = cfg.stroke;
+    const perimeter = 2 * (w + h);
 
-    trackRect.style.display = "block";
-    trackRect.setAttribute("d", framePath);
-    trackRect.setAttribute("stroke-width", cfg.stroke.toString());
-    progressRect.setAttribute("d", framePath);
-    progressRect.setAttribute("stroke-width", cfg.stroke.toString());
+    function placeTrackSegments() {
+      trackSeg.top.style.left = `${x}px`;
+      trackSeg.top.style.top = `${y}px`;
+      trackSeg.top.style.width = `${w}px`;
+      trackSeg.top.style.height = `${s}px`;
 
-    const perimeter = 2 * (rectW + rectH);
+      trackSeg.right.style.left = `${x + w - s}px`;
+      trackSeg.right.style.top = `${y}px`;
+      trackSeg.right.style.width = `${s}px`;
+      trackSeg.right.style.height = `${h}px`;
+
+      trackSeg.bottom.style.left = `${x}px`;
+      trackSeg.bottom.style.top = `${y + h - s}px`;
+      trackSeg.bottom.style.width = `${w}px`;
+      trackSeg.bottom.style.height = `${s}px`;
+
+      trackSeg.left.style.left = `${x}px`;
+      trackSeg.left.style.top = `${y}px`;
+      trackSeg.left.style.width = `${s}px`;
+      trackSeg.left.style.height = `${h}px`;
+    }
+
+    function placeProgressSegments(ratio) {
+      let remain = Math.max(0, Math.min(1, ratio)) * perimeter;
+
+      const topLen = Math.min(remain, w);
+      remain -= topLen;
+      progSeg.top.style.left = `${x}px`;
+      progSeg.top.style.top = `${y}px`;
+      progSeg.top.style.width = `${topLen}px`;
+      progSeg.top.style.height = `${s}px`;
+
+      const rightLen = Math.min(remain, h);
+      remain -= rightLen;
+      progSeg.right.style.left = `${x + w - s}px`;
+      progSeg.right.style.top = `${y}px`;
+      progSeg.right.style.width = `${s}px`;
+      progSeg.right.style.height = `${rightLen}px`;
+
+      const bottomLen = Math.min(remain, w);
+      remain -= bottomLen;
+      progSeg.bottom.style.left = `${x + w - bottomLen}px`;
+      progSeg.bottom.style.top = `${y + h - s}px`;
+      progSeg.bottom.style.width = `${bottomLen}px`;
+      progSeg.bottom.style.height = `${s}px`;
+
+      const leftLen = Math.min(remain, h);
+      progSeg.left.style.left = `${x}px`;
+      progSeg.left.style.top = `${y + h - leftLen}px`;
+      progSeg.left.style.width = `${s}px`;
+      progSeg.left.style.height = `${leftLen}px`;
+    }
+
+    placeTrackSegments();
+    placeProgressSegments(0);
 
     let liveGoal = cfg.goal;
     let liveCurrent = 0;
     let ws = null;
-
-    function buildProgressPath(ratio) {
-      let remain = Math.max(0, Math.min(1, ratio)) * perimeter;
-      let d = `M ${x1} ${y1}`;
-      if (remain <= 0) return d;
-
-      const top = Math.min(remain, rectW);
-      d += ` H ${x1 + top}`;
-      remain -= top;
-      if (remain <= 0) return d;
-
-      const right = Math.min(remain, rectH);
-      d += ` V ${y1 + right}`;
-      remain -= right;
-      if (remain <= 0) return d;
-
-      const bottom = Math.min(remain, rectW);
-      d += ` H ${x2 - bottom}`;
-      remain -= bottom;
-      if (remain <= 0) return d;
-
-      const left = Math.min(remain, rectH);
-      d += ` V ${y2 - left}`;
-      return d;
-    }
 
     function drawProgress(current, goalOverride = null, remainingOverride = null) {
       if (Number.isFinite(goalOverride) && goalOverride > 0) {
@@ -242,8 +291,7 @@
       }
       const clampedCurrent = Math.max(0, Number.isFinite(current) ? current : 0);
       const ratio = Math.min(1, clampedCurrent / liveGoal);
-      progressRect.style.transition = "none";
-      progressRect.setAttribute("d", buildProgressPath(ratio));
+      placeProgressSegments(ratio);
 
       const missing = Number.isFinite(remainingOverride) ? Math.max(0, Math.floor(remainingOverride)) : Math.max(0, liveGoal - clampedCurrent);
       countEl.textContent = `${clampedCurrent} / ${liveGoal}`;
