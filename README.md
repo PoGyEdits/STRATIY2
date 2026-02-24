@@ -5,7 +5,7 @@ Rezim bez pristupu k uctu: nastav startovni `subs` a overlay pak automaticky pri
 
 ## Doporuceny URL (Straty)
 
-`https://TVUJ-VERCEL-DOMAIN/overlay.html?channel=Straty&goal=200&subs=177`
+`https://TVUJ-VERCEL-DOMAIN/overlay.html?channel=Straty&goal=200&subs=177&w=420&h=315&labelOffset=112`
 
 - `subs=177` je start na zacatku streamu
 - behem streamu se pocitadlo samo zvysuje podle live sub/gift sub eventu
@@ -16,6 +16,9 @@ Rezim bez pristupu k uctu: nastav startovni `subs` a overlay pak automaticky pri
 - `goal` - cilovy pocet subu (default `25`)
 - `subs` - startovni aktualni pocet subu (doporučeno)
 - `remaining` - alternativa ke `subs` (kolik zbyva)
+- `w` - sirka ramecku (default `420`)
+- `h` - vyska ramecku (default `315`)
+- `labelOffset` - jak niz je panel pod webkou (default `96`, doporuceno `110-125`)
 - `live=0` - vypne live websocket pricitani
 - `chatroomId` - rucni chatroom ID (volitelne)
 - `chatApi` - endpoint pro zjisteni chatroom ID (default `/api/chatroom`)
@@ -26,7 +29,7 @@ Rezim bez pristupu k uctu: nastav startovni `subs` a overlay pak automaticky pri
 
 1. Pridej `Browser Source`.
 2. Vloz URL.
-3. Nastav Width/Height napr. `500x620`.
+3. Nastav Width na `w` a Height aspon `h + labelOffset` (napr. `420x430`).
 4. Zapni `Refresh browser when scene becomes active`.
 
 ## Poznamka

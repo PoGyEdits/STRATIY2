@@ -6,12 +6,14 @@
   <title>Kick Sub Goal Frame</title>
   <style>
     :root {
-      --frame-size: 420;
+      --frame-width: 420;
+      --frame-height: 315;
       --stroke-width: 16;
       --radius: 16;
-      --track: rgba(255, 255, 255, 0.22);
-      --accent-a: #4ade80;
-      --accent-b: #22d3ee;
+      --label-offset: 96;
+      --track: rgba(83, 252, 24, 0.25);
+      --accent-a: #53fc18;
+      --accent-b: #f59e0b;
       --text: #f8fafc;
       --text-shadow: rgba(0, 0, 0, 0.8);
       --font: "Segoe UI", Tahoma, sans-serif;
@@ -38,8 +40,8 @@
 
     .frame-shell {
       position: relative;
-      width: calc(var(--frame-size) * 1px);
-      height: calc(var(--frame-size) * 1px);
+      width: calc(var(--frame-width) * 1px);
+      height: calc(var(--frame-height) * 1px);
       filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.5));
     }
 
@@ -52,7 +54,7 @@
     .status {
       position: absolute;
       left: 50%;
-      bottom: calc(-72px - var(--stroke-width) * 0.3px);
+      bottom: calc(-1px * var(--label-offset));
       transform: translateX(-50%);
       min-width: 220px;
       text-align: center;
@@ -60,7 +62,8 @@
       text-shadow: 0 2px 8px var(--text-shadow);
       padding: 8px 12px;
       border-radius: 10px;
-      background: rgba(0, 0, 0, 0.38);
+      background: rgba(14, 17, 23, 0.82);
+      border: 1px solid rgba(83, 252, 24, 0.28);
       backdrop-filter: blur(3px);
     }
 
@@ -119,9 +122,11 @@
       goal: Math.max(1, Number(params.get("goal") || 25)),
       title: params.get("title") || "Kick Sub Goal",
       refreshMs: Math.max(5000, Number(params.get("refreshMs") || 30000)),
-      frameSize: Math.max(180, Number(params.get("size") || 420)),
+      frameWidth: Math.max(220, Number(params.get("w") || params.get("size") || 420)),
+      frameHeight: Math.max(140, Number(params.get("h") || 315)),
       stroke: Math.max(4, Number(params.get("stroke") || 16)),
       radius: Math.max(0, Number(params.get("radius") || 16)),
+      labelOffset: Math.max(70, Number(params.get("labelOffset") || 96)),
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
       apiBase: (params.get("api") || "/api/subgoal").trim(),
@@ -130,9 +135,11 @@
       live: params.get("live") !== "0"
     };
 
-    document.documentElement.style.setProperty("--frame-size", cfg.frameSize);
+    document.documentElement.style.setProperty("--frame-width", cfg.frameWidth);
+    document.documentElement.style.setProperty("--frame-height", cfg.frameHeight);
     document.documentElement.style.setProperty("--stroke-width", cfg.stroke);
     document.documentElement.style.setProperty("--radius", cfg.radius);
+    document.documentElement.style.setProperty("--label-offset", cfg.labelOffset);
 
     const titleEl = document.getElementById("title");
     const countEl = document.getElementById("count");
@@ -143,22 +150,25 @@
 
     titleEl.textContent = cfg.title;
 
-    const viewSize = 100;
-    const inset = Math.max(0.5, (cfg.stroke / cfg.frameSize) * viewSize * 0.5);
-    const rectSize = viewSize - inset * 2;
-    const corner = Math.min((cfg.radius / cfg.frameSize) * viewSize, rectSize / 2);
+    const frameSvg = document.getElementById("frameSvg");
+    frameSvg.setAttribute("viewBox", `0 0 ${cfg.frameWidth} ${cfg.frameHeight}`);
+    const inset = cfg.stroke * 0.5;
+    progressRect.setAttribute("transform", `rotate(-90 ${cfg.frameWidth / 2} ${cfg.frameHeight / 2})`);
+    const rectW = Math.max(1, cfg.frameWidth - cfg.stroke);
+    const rectH = Math.max(1, cfg.frameHeight - cfg.stroke);
+    const corner = Math.min(cfg.radius, rectW / 2, rectH / 2);
 
     for (const el of [trackRect, progressRect]) {
       el.setAttribute("x", inset.toString());
       el.setAttribute("y", inset.toString());
-      el.setAttribute("width", rectSize.toString());
-      el.setAttribute("height", rectSize.toString());
+      el.setAttribute("width", rectW.toString());
+      el.setAttribute("height", rectH.toString());
       el.setAttribute("rx", corner.toString());
       el.setAttribute("ry", corner.toString());
-      el.setAttribute("stroke-width", ((cfg.stroke / cfg.frameSize) * viewSize).toString());
+      el.setAttribute("stroke-width", cfg.stroke.toString());
     }
 
-    const perimeter = 2 * (rectSize + rectSize) - 8 * corner + 2 * Math.PI * corner;
+    const perimeter = 2 * (rectW + rectH) - 8 * corner + 2 * Math.PI * corner;
     progressRect.style.strokeDasharray = `${perimeter}`;
 
     let lastRatio = 0;
