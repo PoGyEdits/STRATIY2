@@ -9,11 +9,11 @@
       --frame-width: 420;
       --frame-height: 315;
       --stroke-width: 16;
-      --radius: 16;
+      --radius: 0;
       --label-offset: 96;
-      --track: rgba(83, 252, 24, 0.25);
-      --accent-a: #53fc18;
-      --accent-b: #f59e0b;
+      --track: transparent;
+      --accent-a: #ff8a00;
+      --accent-b: #ffb347;
       --text: #f8fafc;
       --text-shadow: rgba(0, 0, 0, 0.8);
       --font: "Segoe UI", Tahoma, sans-serif;
@@ -61,9 +61,9 @@
       color: var(--text);
       text-shadow: 0 2px 8px var(--text-shadow);
       padding: 8px 12px;
-      border-radius: 10px;
+      border-radius: 0;
       background: rgba(14, 17, 23, 0.82);
-      border: 1px solid rgba(83, 252, 24, 0.28);
+      border: 1px solid rgba(255, 138, 0, 0.35);
       backdrop-filter: blur(3px);
     }
 
@@ -103,7 +103,7 @@
           </linearGradient>
         </defs>
         <rect id="trackRect" x="8" y="8" width="84" height="84" rx="7" ry="7" fill="none" stroke="var(--track)" stroke-width="4" />
-        <rect id="progressRect" x="8" y="8" width="84" height="84" rx="7" ry="7" fill="none" stroke="url(#progressGradient)" stroke-width="4" stroke-linecap="round" transform="rotate(-90 50 50)" />
+        <rect id="progressRect" x="8" y="8" width="84" height="84" rx="7" ry="7" fill="none" stroke="url(#progressGradient)" stroke-width="4" stroke-linecap="butt" transform="rotate(-90 50 50)" />
       </svg>
 
       <div id="status" class="status">
@@ -126,7 +126,7 @@
       frameHeight: Math.max(140, Number(params.get("h") || 315)),
       stroke: Math.max(4, Number(params.get("stroke") || 16)),
       radius: Math.max(0, Number(params.get("radius") || 16)),
-      labelOffset: Math.max(70, Number(params.get("labelOffset") || 96)),
+      labelOffset: Math.max(70, Number(params.get("labelOffset") || 104)),
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
       apiBase: (params.get("api") || "/api/subgoal").trim(),
@@ -158,15 +158,14 @@
     const rectH = Math.max(1, cfg.frameHeight - cfg.stroke);
     const corner = Math.min(cfg.radius, rectW / 2, rectH / 2);
 
-    for (const el of [trackRect, progressRect]) {
-      el.setAttribute("x", inset.toString());
-      el.setAttribute("y", inset.toString());
-      el.setAttribute("width", rectW.toString());
-      el.setAttribute("height", rectH.toString());
-      el.setAttribute("rx", corner.toString());
-      el.setAttribute("ry", corner.toString());
-      el.setAttribute("stroke-width", cfg.stroke.toString());
-    }
+    trackRect.style.display = "none";
+    progressRect.setAttribute("x", inset.toString());
+    progressRect.setAttribute("y", inset.toString());
+    progressRect.setAttribute("width", rectW.toString());
+    progressRect.setAttribute("height", rectH.toString());
+    progressRect.setAttribute("rx", corner.toString());
+    progressRect.setAttribute("ry", corner.toString());
+    progressRect.setAttribute("stroke-width", cfg.stroke.toString());
 
     const perimeter = 2 * (rectW + rectH) - 8 * corner + 2 * Math.PI * corner;
     progressRect.style.strokeDasharray = `${perimeter}`;
