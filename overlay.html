@@ -205,14 +205,36 @@
     progressRect.setAttribute("d", framePath);
     progressRect.setAttribute("stroke-width", cfg.stroke.toString());
 
-    const perimeter = progressRect.getTotalLength();
-    progressRect.style.strokeDasharray = `${perimeter}`;
-    progressRect.style.strokeDashoffset = `${perimeter}`;
+    const perimeter = 2 * (rectW + rectH);
 
-    let lastRatio = 0;
     let liveGoal = cfg.goal;
     let liveCurrent = 0;
     let ws = null;
+
+    function buildProgressPath(ratio) {
+      let remain = Math.max(0, Math.min(1, ratio)) * perimeter;
+      let d = `M ${x1} ${y1}`;
+      if (remain <= 0) return d;
+
+      const top = Math.min(remain, rectW);
+      d += ` H ${x1 + top}`;
+      remain -= top;
+      if (remain <= 0) return d;
+
+      const right = Math.min(remain, rectH);
+      d += ` V ${y1 + right}`;
+      remain -= right;
+      if (remain <= 0) return d;
+
+      const bottom = Math.min(remain, rectW);
+      d += ` H ${x2 - bottom}`;
+      remain -= bottom;
+      if (remain <= 0) return d;
+
+      const left = Math.min(remain, rectH);
+      d += ` V ${y2 - left}`;
+      return d;
+    }
 
     function drawProgress(current, goalOverride = null, remainingOverride = null) {
       if (Number.isFinite(goalOverride) && goalOverride > 0) {
@@ -220,13 +242,8 @@
       }
       const clampedCurrent = Math.max(0, Number.isFinite(current) ? current : 0);
       const ratio = Math.min(1, clampedCurrent / liveGoal);
-      const offset = perimeter * (1 - ratio);
-      progressRect.style.transition = "stroke-dashoffset 800ms ease";
-      progressRect.style.strokeDashoffset = `${offset}`;
-      if (ratio < lastRatio) {
-        progressRect.style.transition = "stroke-dashoffset 350ms ease-out";
-      }
-      lastRatio = ratio;
+      progressRect.style.transition = "d 120ms linear";
+      progressRect.setAttribute("d", buildProgressPath(ratio));
 
       const missing = Number.isFinite(remainingOverride) ? Math.max(0, Math.floor(remainingOverride)) : Math.max(0, liveGoal - clampedCurrent);
       countEl.textContent = `${clampedCurrent} / ${liveGoal}`;
