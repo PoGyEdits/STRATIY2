@@ -3,6 +3,13 @@
 `overlay.html` je web overlay pro OBS.
 Rezim bez pristupu k uctu: nastav startovni `subs` a overlay pak automaticky pricita nove suby z verejnych Kick chat eventu.
 
+## Visual settings page
+
+Pouzij `settings.html` a nastavuj vse pres UI:
+`https://TVUJ-VERCEL-DOMAIN/settings.html`
+
+Ze settings stranky zkopiruj vygenerovany OBS URL.
+
 ## Doporuceny URL (Straty)
 
 `https://TVUJ-VERCEL-DOMAIN/overlay.html?channel=Straty&goal=200&subs=177&w=420&h=315&labelOffset=112`
@@ -14,7 +21,7 @@ Rezim bez pristupu k uctu: nastav startovni `subs` a overlay pak automaticky pri
 
 - `channel` - kick kanal (default `Straty`)
 - `goal` - cilovy pocet subu (default `25`)
-- `subs` - startovni aktualni pocet subu (doporučeno)
+- `subs` - startovni aktualni pocet subu (doporuceno)
 - `remaining` - alternativa ke `subs` (kolik zbyva)
 - `w` - sirka ramecku (default `420`)
 - `h` - vyska ramecku (default `315`)

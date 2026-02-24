@@ -1,0 +1,319 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overlay Settings</title>
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --panel: #121722;
+      --panel-2: #171d2b;
+      --line: #2a3245;
+      --txt: #e8edf7;
+      --muted: #9aa8c7;
+      --accent: #2ea0ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: var(--txt);
+      background: radial-gradient(circle at 20% 10%, #192039, var(--bg) 42%);
+      min-height: 100vh;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      letter-spacing: .02em;
+    }
+    .group-title {
+      margin: 14px 0 8px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field.full { grid-column: 1 / -1; }
+    label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="color"] {
+      width: 100%;
+      border: 1px solid #33405d;
+      background: #0d1220;
+      color: var(--txt);
+      border-radius: 8px;
+      padding: 8px 10px;
+      outline: none;
+    }
+    input[type="checkbox"] { transform: scale(1.15); }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    button {
+      border: 1px solid #3d4f78;
+      background: #1f2d4d;
+      color: #eaf2ff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    button.primary {
+      border-color: #2589dc;
+      background: #1e5f9e;
+    }
+    .url-box {
+      margin-top: 10px;
+      width: 100%;
+      min-height: 72px;
+      border: 1px solid #364565;
+      background: #0d1220;
+      color: #d3e3ff;
+      border-radius: 8px;
+      padding: 8px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .preview-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .preview-head {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .preview {
+      width: 100%;
+      min-height: 640px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #000;
+    }
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .preview { min-height: 520px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel">
+      <h1>Overlay Settings</h1>
+
+      <div class="group-title">Source</div>
+      <div class="grid">
+        <div class="field full">
+          <label for="baseUrl">Overlay URL</label>
+          <input id="baseUrl" type="text" value="overlay.html" />
+        </div>
+        <div class="field">
+          <label for="channel">Channel</label>
+          <input id="channel" type="text" value="Straty" />
+        </div>
+        <div class="field">
+          <label for="goal">Goal</label>
+          <input id="goal" type="number" value="200" min="1" />
+        </div>
+        <div class="field">
+          <label for="subs">Start Subs</label>
+          <input id="subs" type="number" value="177" min="0" />
+        </div>
+        <div class="field">
+          <label for="refreshMs">Refresh (ms)</label>
+          <input id="refreshMs" type="number" value="30000" min="5000" />
+        </div>
+      </div>
+
+      <div class="group-title">Layout</div>
+      <div class="grid">
+        <div class="field">
+          <label for="w">Width</label>
+          <input id="w" type="number" value="420" min="220" />
+        </div>
+        <div class="field">
+          <label for="h">Height</label>
+          <input id="h" type="number" value="360" min="220" />
+        </div>
+        <div class="field">
+          <label for="stroke">Stroke</label>
+          <input id="stroke" type="number" value="16" min="4" />
+        </div>
+        <div class="field">
+          <label for="pad">Pad</label>
+          <input id="pad" type="number" value="14" min="0" />
+        </div>
+        <div class="field">
+          <label for="labelOffset">Label Offset</label>
+          <input id="labelOffset" type="number" value="96" min="60" />
+        </div>
+        <div class="field">
+          <label for="bannerScale">Banner Scale</label>
+          <input id="bannerScale" type="number" step="0.05" value="1.2" min="0.6" max="2" />
+        </div>
+      </div>
+
+      <div class="group-title">Colors</div>
+      <div class="grid">
+        <div class="field">
+          <label for="color1">Progress Color 1</label>
+          <input id="color1" type="color" value="#007bff" />
+        </div>
+        <div class="field">
+          <label for="color2">Progress Color 2</label>
+          <input id="color2" type="color" value="#00c6ff" />
+        </div>
+        <div class="field full">
+          <label for="trackColor">Track Color (rgba or hex)</label>
+          <input id="trackColor" type="text" value="rgba(0,123,255,0.35)" />
+        </div>
+        <div class="field full">
+          <label for="panelColor">Panel Color (rgba or hex)</label>
+          <input id="panelColor" type="text" value="rgba(8,18,35,0.82)" />
+        </div>
+        <div class="field">
+          <label for="textColor">Text Color</label>
+          <input id="textColor" type="color" value="#eaf4ff" />
+        </div>
+        <div class="field full">
+          <label for="borderColor">Border Color (rgba or hex)</label>
+          <input id="borderColor" type="text" value="rgba(0,140,255,0.55)" />
+        </div>
+      </div>
+
+      <div class="group-title">Toggles</div>
+      <div class="grid">
+        <div class="field row">
+          <input id="banner" type="checkbox" checked />
+          <label for="banner">Show Banner</label>
+        </div>
+        <div class="field row">
+          <input id="live" type="checkbox" checked />
+          <label for="live">Live Auto Increment</label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="copyBtn" class="primary">Copy OBS URL</button>
+        <button id="openBtn">Open Overlay</button>
+      </div>
+
+      <textarea id="outUrl" class="url-box" readonly></textarea>
+    </section>
+
+    <section class="panel preview-wrap">
+      <div class="preview-head">Live Preview (same generated URL)</div>
+      <iframe id="preview" class="preview" title="overlay preview"></iframe>
+    </section>
+  </div>
+
+  <script>
+    const ids = [
+      "baseUrl", "channel", "goal", "subs", "refreshMs", "w", "h", "stroke", "pad", "labelOffset", "bannerScale",
+      "color1", "color2", "trackColor", "panelColor", "textColor", "borderColor", "banner", "live"
+    ];
+
+    const el = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+    const outUrl = document.getElementById("outUrl");
+    const preview = document.getElementById("preview");
+    const copyBtn = document.getElementById("copyBtn");
+    const openBtn = document.getElementById("openBtn");
+
+    function boolParam(on) {
+      return on ? "1" : "0";
+    }
+
+    function buildUrl() {
+      const rawBase = (el.baseUrl.value || "overlay.html").trim();
+      const base = new URL(rawBase, window.location.href);
+      const p = base.searchParams;
+
+      p.set("channel", el.channel.value.trim());
+      p.set("goal", String(Math.max(1, Number(el.goal.value) || 1)));
+      p.set("subs", String(Math.max(0, Number(el.subs.value) || 0)));
+      p.set("refreshMs", String(Math.max(5000, Number(el.refreshMs.value) || 30000)));
+      p.set("w", String(Math.max(220, Number(el.w.value) || 420)));
+      p.set("h", String(Math.max(220, Number(el.h.value) || 360)));
+      p.set("stroke", String(Math.max(4, Number(el.stroke.value) || 16)));
+      p.set("pad", String(Math.max(0, Number(el.pad.value) || 14)));
+      p.set("labelOffset", String(Math.max(60, Number(el.labelOffset.value) || 96)));
+      p.set("bannerScale", String(Math.max(0.6, Math.min(2, Number(el.bannerScale.value) || 1))));
+
+      p.set("color1", el.color1.value);
+      p.set("color2", el.color2.value);
+      p.set("trackColor", el.trackColor.value.trim());
+      p.set("panelColor", el.panelColor.value.trim());
+      p.set("textColor", el.textColor.value);
+      p.set("borderColor", el.borderColor.value.trim());
+      p.set("banner", boolParam(el.banner.checked));
+      p.set("live", boolParam(el.live.checked));
+
+      return base.toString();
+    }
+
+    function refresh() {
+      const url = buildUrl();
+      outUrl.value = url;
+      preview.src = url;
+    }
+
+    ids.forEach((id) => {
+      const node = el[id];
+      node.addEventListener("input", refresh);
+      node.addEventListener("change", refresh);
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      const txt = outUrl.value;
+      try {
+        await navigator.clipboard.writeText(txt);
+        copyBtn.textContent = "Copied";
+        setTimeout(() => { copyBtn.textContent = "Copy OBS URL"; }, 1200);
+      } catch {
+        outUrl.focus();
+        outUrl.select();
+      }
+    });
+
+    openBtn.addEventListener("click", () => {
+      window.open(outUrl.value, "_blank", "noopener,noreferrer");
+    });
+
+    refresh();
+  </script>
+</body>
+</html>
