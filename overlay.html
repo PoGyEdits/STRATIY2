@@ -242,7 +242,7 @@
       }
       const clampedCurrent = Math.max(0, Number.isFinite(current) ? current : 0);
       const ratio = Math.min(1, clampedCurrent / liveGoal);
-      progressRect.style.transition = "d 120ms linear";
+      progressRect.style.transition = "none";
       progressRect.setAttribute("d", buildProgressPath(ratio));
 
       const missing = Number.isFinite(remainingOverride) ? Math.max(0, Math.floor(remainingOverride)) : Math.max(0, liveGoal - clampedCurrent);
