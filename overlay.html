@@ -7,7 +7,7 @@
   <style>
     :root {
       --frame-width: 420;
-      --frame-height: 315;
+      --frame-height: 420;
       --stroke-width: 16;
       --radius: 0;
       --label-offset: 96;
@@ -123,9 +123,9 @@
       title: params.get("title") || "Kick Sub Goal",
       refreshMs: Math.max(5000, Number(params.get("refreshMs") || 30000)),
       frameWidth: Math.max(220, Number(params.get("w") || params.get("size") || 420)),
-      frameHeight: Math.max(140, Number(params.get("h") || 315)),
+      frameHeight: Math.max(220, Number(params.get("h") || params.get("w") || params.get("size") || 420)),
       stroke: Math.max(4, Number(params.get("stroke") || 16)),
-      radius: Math.max(0, Number(params.get("radius") || 16)),
+      radius: 0,
       labelOffset: Math.max(70, Number(params.get("labelOffset") || 104)),
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
@@ -156,7 +156,7 @@
     progressRect.setAttribute("transform", `rotate(-90 ${cfg.frameWidth / 2} ${cfg.frameHeight / 2})`);
     const rectW = Math.max(1, cfg.frameWidth - cfg.stroke);
     const rectH = Math.max(1, cfg.frameHeight - cfg.stroke);
-    const corner = Math.min(cfg.radius, rectW / 2, rectH / 2);
+    const corner = 0;
 
     trackRect.style.display = "none";
     progressRect.setAttribute("x", inset.toString());
