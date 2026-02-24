@@ -129,6 +129,8 @@
       radius: 0,
       pad: Math.max(0, Number(params.get("pad") || 14)),
       labelOffset: Math.max(70, Number(params.get("labelOffset") || 104)),
+      bannerScale: Math.max(0.6, Math.min(2, Number(params.get("bannerScale") || 1))),
+      showBanner: params.get("banner") !== "0",
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
       apiBase: (params.get("api") || "/api/subgoal").trim(),
@@ -152,6 +154,11 @@
     const progressRect = document.getElementById("progressRect");
 
     titleEl.textContent = cfg.title;
+    statusEl.style.transform = `translateX(-50%) scale(${cfg.bannerScale})`;
+    statusEl.style.transformOrigin = "center top";
+    if (!cfg.showBanner) {
+      statusEl.style.display = "none";
+    }
 
     const frameSvg = document.getElementById("frameSvg");
     const outerW = cfg.frameWidth + cfg.pad * 2;
