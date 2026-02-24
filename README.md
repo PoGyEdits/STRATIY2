@@ -12,6 +12,7 @@ Soubor `overlay.html` je web overlay pro OBS: čtvercový rámeček kolem webky 
 - `radius` - zaoblení rohů (default `16`)
 - `refreshMs` - interval obnovy dat (default `30000`)
 - `subs` - ruční override počtu subů (když API nevrací sub count)
+- `remaining` - ruční override zbývajících subů do cíle (alternativa k `subs`)
 - `proxy=0` - vypne fallback čtení přes proxy (default je proxy zapnutá)
 
 ## Příklad URL
@@ -21,6 +22,10 @@ Soubor `overlay.html` je web overlay pro OBS: čtvercový rámeček kolem webky 
 Výchozí (proxy už je zapnutá):
 
 `https://TVUJ-ODKAZ/overlay.html?channel=Straty&goal=50`
+
+Spolehlivý fallback pro Straty (když Kick blokuje API):
+
+`https://TVUJ-ODKAZ/overlay.html?channel=Straty&goal=200&subs=177`
 
 ## OBS nastavení
 

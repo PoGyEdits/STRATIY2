@@ -123,6 +123,7 @@
       stroke: Math.max(4, Number(params.get("stroke") || 16)),
       radius: Math.max(0, Number(params.get("radius") || 16)),
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
+      manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
       useProxy: params.get("proxy") !== "0"
     };
 
@@ -323,6 +324,10 @@
         drawProgress(cfg.manualSubs);
         return;
       }
+      if (cfg.manualRemaining !== null && Number.isFinite(cfg.manualRemaining)) {
+        drawProgress(Math.max(0, cfg.goal - cfg.manualRemaining), cfg.goal, cfg.manualRemaining);
+        return;
+      }
 
       const slug = encodeURIComponent(cfg.channel);
       const directEndpoints = [
@@ -405,7 +410,7 @@
       }
 
       statusEl.classList.add("error");
-      subEl.textContent = "Nelze načíst sub goal z Kick";
+      subEl.textContent = "Kick API blokuje pristup. Pouzij ?subs=177 nebo ?remaining=23";
       if (lastError) {
         console.warn("Kick load failed:", lastError);
       }
