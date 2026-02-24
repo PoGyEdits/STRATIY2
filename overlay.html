@@ -131,6 +131,12 @@
       labelOffset: Math.max(70, Number(params.get("labelOffset") || 104)),
       bannerScale: Math.max(0.6, Math.min(2, Number(params.get("bannerScale") || 1))),
       showBanner: params.get("banner") !== "0",
+      color1: params.get("color1") || null,
+      color2: params.get("color2") || null,
+      trackColor: params.get("trackColor") || null,
+      panelColor: params.get("panelColor") || null,
+      textColor: params.get("textColor") || null,
+      borderColor: params.get("borderColor") || null,
       manualSubs: params.has("subs") ? Math.max(0, Number(params.get("subs"))) : null,
       manualRemaining: params.has("remaining") ? Math.max(0, Number(params.get("remaining"))) : null,
       apiBase: (params.get("api") || "/api/subgoal").trim(),
@@ -139,12 +145,29 @@
       live: params.get("live") !== "0"
     };
 
+    function cssColorOrNull(v) {
+      if (!v || typeof v !== "string") return null;
+      const s = v.trim();
+      if (/^#[0-9a-fA-F]{3,8}$/.test(s)) return s;
+      if (/^(rgb|rgba|hsl|hsla)\(/i.test(s)) return s;
+      return null;
+    }
+
     document.documentElement.style.setProperty("--frame-width", cfg.frameWidth);
     document.documentElement.style.setProperty("--frame-height", cfg.frameHeight);
     document.documentElement.style.setProperty("--stroke-width", cfg.stroke);
     document.documentElement.style.setProperty("--radius", cfg.radius);
     document.documentElement.style.setProperty("--frame-pad", cfg.pad);
     document.documentElement.style.setProperty("--label-offset", cfg.labelOffset);
+    const c1 = cssColorOrNull(cfg.color1);
+    const c2 = cssColorOrNull(cfg.color2);
+    const tr = cssColorOrNull(cfg.trackColor);
+    const pc = cssColorOrNull(cfg.panelColor);
+    const tc = cssColorOrNull(cfg.textColor);
+    const bc = cssColorOrNull(cfg.borderColor);
+    if (c1) document.documentElement.style.setProperty("--accent-a", c1);
+    if (c2) document.documentElement.style.setProperty("--accent-b", c2);
+    if (tr) document.documentElement.style.setProperty("--track", tr);
 
     const titleEl = document.getElementById("title");
     const countEl = document.getElementById("count");
@@ -152,6 +175,9 @@
     const statusEl = document.getElementById("status");
     const trackRect = document.getElementById("trackRect");
     const progressRect = document.getElementById("progressRect");
+    if (pc) statusEl.style.background = pc;
+    if (tc) statusEl.style.color = tc;
+    if (bc) statusEl.style.borderColor = bc;
 
     titleEl.textContent = cfg.title;
     statusEl.style.transform = `translateX(-50%) scale(${cfg.bannerScale})`;
