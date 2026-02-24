@@ -190,12 +190,12 @@
       <div class="group-title">Colors</div>
       <div class="grid">
         <div class="field">
-          <label for="color1">Progress Color 1</label>
+          <label for="color1">Main Color</label>
           <input id="color1" type="color" value="#007bff" />
         </div>
-        <div class="field">
-          <label for="color2">Progress Color 2</label>
-          <input id="color2" type="color" value="#00c6ff" />
+        <div class="field row">
+          <input id="autoTheme" type="checkbox" checked />
+          <label for="autoTheme">Auto banner/track from Main Color</label>
         </div>
         <div class="field full">
           <label for="trackColor">Track Color (rgba or hex)</label>
@@ -244,7 +244,7 @@
   <script>
     const ids = [
       "baseUrl", "channel", "goal", "subs", "refreshMs", "w", "h", "stroke", "pad", "labelOffset", "bannerScale",
-      "color1", "color2", "trackColor", "panelColor", "textColor", "borderColor", "banner", "live"
+      "color1", "autoTheme", "trackColor", "panelColor", "textColor", "borderColor", "banner", "live"
     ];
 
     const el = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
@@ -255,6 +255,43 @@
 
     function boolParam(on) {
       return on ? "1" : "0";
+    }
+    function hexToRgb(hex) {
+      const m = (hex || "").trim().match(/^#([0-9a-fA-F]{6})$/);
+      if (!m) return null;
+      const v = m[1];
+      return {
+        r: parseInt(v.slice(0, 2), 16),
+        g: parseInt(v.slice(2, 4), 16),
+        b: parseInt(v.slice(4, 6), 16)
+      };
+    }
+    function scale(rgb, factor) {
+      return {
+        r: Math.max(0, Math.min(255, Math.round(rgb.r * factor))),
+        g: Math.max(0, Math.min(255, Math.round(rgb.g * factor))),
+        b: Math.max(0, Math.min(255, Math.round(rgb.b * factor)))
+      };
+    }
+    function rgba(rgb, a) {
+      return `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+    }
+    function applyAutoTheme() {
+      if (!el.autoTheme.checked) return;
+      const rgb = hexToRgb(el.color1.value);
+      if (!rgb) return;
+      el.trackColor.value = rgba(rgb, 0.35);
+      el.panelColor.value = rgba(scale(rgb, 0.22), 0.82);
+      el.borderColor.value = rgba(scale(rgb, 0.7), 0.55);
+    }
+    function updateColorFieldState() {
+      const locked = el.autoTheme.checked;
+      el.trackColor.readOnly = locked;
+      el.panelColor.readOnly = locked;
+      el.borderColor.readOnly = locked;
+      el.trackColor.style.opacity = locked ? "0.75" : "1";
+      el.panelColor.style.opacity = locked ? "0.75" : "1";
+      el.borderColor.style.opacity = locked ? "0.75" : "1";
     }
 
     function buildUrl() {
@@ -273,8 +310,8 @@
       p.set("labelOffset", String(Math.max(60, Number(el.labelOffset.value) || 96)));
       p.set("bannerScale", String(Math.max(0.6, Math.min(2, Number(el.bannerScale.value) || 1))));
 
+      if (el.autoTheme.checked) applyAutoTheme();
       p.set("color1", el.color1.value);
-      p.set("color2", el.color2.value);
       p.set("trackColor", el.trackColor.value.trim());
       p.set("panelColor", el.panelColor.value.trim());
       p.set("textColor", el.textColor.value);
@@ -296,6 +333,15 @@
       node.addEventListener("input", refresh);
       node.addEventListener("change", refresh);
     });
+    el.autoTheme.addEventListener("change", () => {
+      updateColorFieldState();
+      refresh();
+    });
+    el.color1.addEventListener("input", () => {
+      if (el.autoTheme.checked) {
+        applyAutoTheme();
+      }
+    });
 
     copyBtn.addEventListener("click", async () => {
       const txt = outUrl.value;
@@ -313,6 +359,8 @@
       window.open(outUrl.value, "_blank", "noopener,noreferrer");
     });
 
+    updateColorFieldState();
+    applyAutoTheme();
     refresh();
   </script>
 </body>

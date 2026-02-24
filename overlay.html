@@ -146,7 +146,6 @@
       bannerScale: Math.max(0.6, Math.min(2, Number(params.get("bannerScale") || 1))),
       showBanner: params.get("banner") !== "0",
       color1: params.get("color1") || null,
-      color2: params.get("color2") || null,
       trackColor: params.get("trackColor") || null,
       panelColor: params.get("panelColor") || null,
       textColor: params.get("textColor") || null,
@@ -166,6 +165,27 @@
       if (/^(rgb|rgba|hsl|hsla)\(/i.test(s)) return s;
       return null;
     }
+    function hexToRgb(hex) {
+      const s = (hex || "").trim();
+      const m = s.match(/^#([0-9a-fA-F]{6})$/);
+      if (!m) return null;
+      const v = m[1];
+      return {
+        r: parseInt(v.slice(0, 2), 16),
+        g: parseInt(v.slice(2, 4), 16),
+        b: parseInt(v.slice(4, 6), 16)
+      };
+    }
+    function scaleRgb(rgb, factor) {
+      return {
+        r: Math.max(0, Math.min(255, Math.round(rgb.r * factor))),
+        g: Math.max(0, Math.min(255, Math.round(rgb.g * factor))),
+        b: Math.max(0, Math.min(255, Math.round(rgb.b * factor)))
+      };
+    }
+    function rgba(rgb, alpha) {
+      return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+    }
 
     document.documentElement.style.setProperty("--frame-width", cfg.frameWidth);
     document.documentElement.style.setProperty("--frame-height", cfg.frameHeight);
@@ -174,14 +194,14 @@
     document.documentElement.style.setProperty("--frame-pad", cfg.pad);
     document.documentElement.style.setProperty("--label-offset", cfg.labelOffset);
     const c1 = cssColorOrNull(cfg.color1);
-    const c2 = cssColorOrNull(cfg.color2);
     const tr = cssColorOrNull(cfg.trackColor);
     const pc = cssColorOrNull(cfg.panelColor);
     const tc = cssColorOrNull(cfg.textColor);
     const bc = cssColorOrNull(cfg.borderColor);
-    if (c1) document.documentElement.style.setProperty("--accent-a", c1);
-    if (c2) document.documentElement.style.setProperty("--accent-b", c2);
-    if (tr) document.documentElement.style.setProperty("--track", tr);
+    if (c1) {
+      document.documentElement.style.setProperty("--accent-a", c1);
+      document.documentElement.style.setProperty("--accent-b", c1);
+    }
 
     const titleEl = document.getElementById("title");
     const countEl = document.getElementById("count");
@@ -201,6 +221,15 @@
       bottom: progressLayer.querySelector(".bottom"),
       left: progressLayer.querySelector(".left")
     };
+    if (c1) {
+      const rgb = hexToRgb(c1);
+      if (rgb) {
+        if (!tr) document.documentElement.style.setProperty("--track", rgba(rgb, 0.35));
+        if (!pc) statusEl.style.background = rgba(scaleRgb(rgb, 0.22), 0.82);
+        if (!bc) statusEl.style.borderColor = rgba(scaleRgb(rgb, 0.7), 0.55);
+      }
+    }
+    if (tr) document.documentElement.style.setProperty("--track", tr);
     if (pc) statusEl.style.background = pc;
     if (tc) statusEl.style.color = tc;
     if (bc) statusEl.style.borderColor = bc;
