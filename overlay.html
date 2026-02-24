@@ -103,8 +103,8 @@
             <stop offset="100%" stop-color="var(--accent-b)" />
           </linearGradient>
         </defs>
-        <rect id="trackRect" x="8" y="8" width="84" height="84" rx="7" ry="7" fill="none" stroke="var(--track)" stroke-width="4" />
-        <rect id="progressRect" x="8" y="8" width="84" height="84" rx="7" ry="7" fill="none" stroke="url(#progressGradient)" stroke-width="4" stroke-linecap="butt" />
+        <path id="trackRect" d="" fill="none" stroke="var(--track)" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" />
+        <path id="progressRect" d="" fill="none" stroke="url(#progressGradient)" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter" />
       </svg>
 
       <div id="status" class="status">
@@ -193,22 +193,16 @@
     const inset = cfg.pad + cfg.stroke * 0.5;
     const rectW = Math.max(1, cfg.frameWidth - cfg.stroke);
     const rectH = Math.max(1, cfg.frameHeight - cfg.stroke);
-    const corner = 0;
+    const x1 = inset;
+    const y1 = inset;
+    const x2 = inset + rectW;
+    const y2 = inset + rectH;
+    const framePath = `M ${x1} ${y1} H ${x2} V ${y2} H ${x1} V ${y1}`;
 
     trackRect.style.display = "block";
-    trackRect.setAttribute("x", inset.toString());
-    trackRect.setAttribute("y", inset.toString());
-    trackRect.setAttribute("width", rectW.toString());
-    trackRect.setAttribute("height", rectH.toString());
-    trackRect.setAttribute("rx", corner.toString());
-    trackRect.setAttribute("ry", corner.toString());
+    trackRect.setAttribute("d", framePath);
     trackRect.setAttribute("stroke-width", cfg.stroke.toString());
-    progressRect.setAttribute("x", inset.toString());
-    progressRect.setAttribute("y", inset.toString());
-    progressRect.setAttribute("width", rectW.toString());
-    progressRect.setAttribute("height", rectH.toString());
-    progressRect.setAttribute("rx", corner.toString());
-    progressRect.setAttribute("ry", corner.toString());
+    progressRect.setAttribute("d", framePath);
     progressRect.setAttribute("stroke-width", cfg.stroke.toString());
 
     progressRect.setAttribute("pathLength", "100");
